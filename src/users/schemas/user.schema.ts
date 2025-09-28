@@ -11,6 +11,9 @@ export class User {
   name: string;
 
   @Prop({ required: false })
+  profilePicture: string;
+
+  @Prop({ required: false })
   birthDate: string;
 
   @Prop({ required: false, unique: true })

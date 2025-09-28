@@ -17,9 +17,12 @@ export class UsersService {
   }
 
   async update(authUser: UserAuthResponseDto, data: UpdateUserDto): Promise<UserResponseDto> {
-    const user = await this.userRepository.update(authUser.id, data);
+    const user = await this.userRepository.findById(authUser.id);
     if (!user) throw new NotFoundException('User not found');
 
-    return UserResponseDto.fromEntity(user);
+    const updatedUser = await this.userRepository.update(user.id, data);
+    if (!updatedUser) throw new NotFoundException('User not found');
+
+    return UserResponseDto.fromEntity(updatedUser);
   }
 }
