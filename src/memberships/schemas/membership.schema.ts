@@ -8,7 +8,7 @@ export enum MembershipRole {
 
 export type MembershipDocument = Membership & Document;
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: false })
 export class Membership {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
