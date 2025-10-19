@@ -1,9 +1,10 @@
-import { Expose, plainToInstance } from 'class-transformer';
-import { IsEmail, IsEnum, IsInt, IsString } from 'class-validator';
+import { Expose, plainToInstance, Type } from 'class-transformer';
+import { IsArray, IsEmail, IsEnum, IsInt, IsString, ValidateNested } from 'class-validator';
 
+import { ActiveSchoolResponseDto } from '@/users/dtos/active-school-response.dto';
 import { UserRole } from '@/users/types/user-role.type';
 import { User } from '@/users/schemas/user.schema';
-import { ActiveSchool } from '../schemas/active-school.schema';
+import { ActiveSchool } from '@/users/schemas/active-school.schema';
 
 class UserResponseDto {
   @Expose()
@@ -38,7 +39,11 @@ class UserResponseDto {
   @IsString()
   currentActiveSchoolId: string;
 
-  activeSchools: ActiveSchool[];
+  @Expose()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ActiveSchoolResponseDto)
+  activeSchools: ActiveSchoolResponseDto[];
 
   password: string
 
