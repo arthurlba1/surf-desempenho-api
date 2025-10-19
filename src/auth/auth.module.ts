@@ -3,14 +3,21 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 
-import { AuthService } from '@/auth/auth.service';
 import { AuthController } from '@/auth/auth.controller';
-import { UsersModule } from '@/users/users.module';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
+import { RegisterSurferUseCase } from '@/auth/use-cases/register-surfer-use-case';
+import { RegisterCoachUseCase } from '@/auth/use-cases/register-coach-use-case';
+import { LoggedUseCase } from '@/auth/use-cases/logged-use-case';
+import { LoginUseCase } from '@/auth/use-cases/login-use-case';
+import { UsersModule } from '@/users/users.module';
+import { SchoolModule } from '@/school/school.module';
+import { MembershipsModule } from '@/memberships/memberships.module';
 
 @Module({
   imports: [
     UsersModule,
+    SchoolModule,
+    MembershipsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -24,7 +31,7 @@ import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [JwtStrategy, LoggedUseCase, LoginUseCase, RegisterSurferUseCase, RegisterCoachUseCase],
+  exports: [],
 })
 export class AuthModule {}

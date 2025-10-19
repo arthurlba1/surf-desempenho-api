@@ -9,7 +9,4 @@ export class ApiResponseDto<T> {
     { type: 'array', items: { type: 'string' } }
   ]})
   message: string | string[];
-
-  @ApiProperty({ type: Number })
-  statusCode: number;
 }

@@ -1,5 +1,6 @@
-import { UserResponseDto } from '@/users/dtos/user-response.dto';
+import type { AuthUser } from '@/common/types/auth.types';
 
 export interface RequestWithUser extends Request {
-  user: UserResponseDto;
+  user: AuthUser;
 }
+

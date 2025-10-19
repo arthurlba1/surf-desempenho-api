@@ -1,7 +1,9 @@
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { UserRole } from '@/users/types/user-role.type';
+import { MembershipRole } from '@/memberships/schemas/membership.schema';
+import { ActiveSchool, ActiveSchoolSchema } from './active-school.schema';
 
 export type UserDocument = User & Document;
 
@@ -9,15 +11,6 @@ export type UserDocument = User & Document;
 export class User {
   @Prop({ required: true })
   name: string;
-
-  @Prop({ required: false })
-  profilePicture: string;
-
-  @Prop({ required: false })
-  birthDate: string;
-
-  @Prop({ required: false, unique: true })
-  document: string;
 
   @Prop({ required: true, unique: true })
   email: string;
@@ -27,6 +20,24 @@ export class User {
 
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
+
+  @Prop({ required: false })
+  profilePictureUrl: string;
+
+  @Prop({ required: false })
+  birthdate: string;
+
+  @Prop({ required: false, unique: true })
+  document: string;
+
+  @Prop({ required: false })
+  currentActiveSchoolId: string;
+
+  @Prop({
+    required: false,
+    type: [ActiveSchoolSchema],
+  })
+  activeSchools: ActiveSchool[];
 
   @Prop({ required: true, default: Date.now })
   createdAt: Date;
