@@ -11,6 +11,6 @@ export abstract class BaseUseCase<TInput = any, TOutput = any>
   abstract handle(payload: TInput, auth?: AuthUser): Promise<IUseCaseResponse<TOutput>>;
 
   protected ok<T>(message: string, data?: T): IUseCaseResponse<T> {
-    return { message, data };
+    return { message, detail: data };
   }
 }

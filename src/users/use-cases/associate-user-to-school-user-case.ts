@@ -7,7 +7,6 @@ import { type IUseCaseResponse } from "@/common/types/use-case-response";
 import { UserResponseDto } from "@/users/dtos/user-response.dto";
 import { IUserRepository } from "@/users/repositories/user.repository.interface";
 import { AssociateUserToSchoolDto } from "@/users/dtos/associate-user-to-school.dto";
-import { ActiveSchool } from "@/users/schemas/active-school.schema";
 import { MembershipRole } from "@/memberships/schemas/membership.schema";
 import { IMembershipRepository } from "@/memberships/repositories/membership.repository.interface";
 import { ISchoolRepository } from "@/school/repositories/school.repository.interface";
@@ -24,18 +23,18 @@ export class AssociateUserToSchoolUseCase extends BaseUseCase<AssociateUserToSch
     const user = await this.userRepository.findById(auth.id);
     if (!user) throw new UnauthorizedException('User not authenticated');
 
-    const activeSchool = user.activeSchools.find(school => school.schoolId === payload.schoolId);
-    if (activeSchool) throw new ConflictException('User already associated to this school');
+    const existingMembership = await this.membershipRepository.findByUserIdAndSchoolId(user.id, payload.schoolId);
+    if (existingMembership) throw new ConflictException('User already associated to this school');
 
     const school = await this.schoolRepository.findById(payload.schoolId);
     if (!school) throw new ConflictException('School not found');
 
-    await this.userRepository.updateActiveSchools(
-      user.id,
-      { schoolId: payload.schoolId, isActive: true, role: user.role.toUpperCase() as unknown as MembershipRole } as ActiveSchool
-    );
     await this.userRepository.setCurrentActiveSchoolId(user.id, payload.schoolId);
-    await this.membershipRepository.create({ userId: user.id, schoolId: payload.schoolId, role: user.role.toUpperCase() as unknown as MembershipRole });
+    await this.membershipRepository.create({
+      userId: user.id,
+      schoolId: school.id,
+      role: user.role.toUpperCase() as unknown as MembershipRole,
+    } as any);
 
     return this.ok('User associated to school successfully', UserResponseDto.fromEntity(user));
   }

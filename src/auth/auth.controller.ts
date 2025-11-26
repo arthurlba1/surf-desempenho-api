@@ -32,6 +32,7 @@ export class AuthController {
   @Post('register')
   @ApiRegisterDocumentation()
   async register(@Body() registerDto: RegisterDto): Promise<ApiResponseDto<AuthResponseDto>> {
+    console.log('registerDto', registerDto);
     if (registerDto.role === UserRole.COACH) {
       return await this.registerCoachUseCase.handle(registerDto)
     }
@@ -46,6 +47,7 @@ export class AuthController {
   @Post('login')
   @ApiLoginDocumentation()
   async login(@Body() loginDto: LoginDto): Promise<ApiResponseDto<AuthResponseDto>> {
+    console.log('loginDto', loginDto);
     return await this.loginUseCase.handle(loginDto);
   }
 

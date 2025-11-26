@@ -4,6 +4,9 @@ import { Membership, MembershipRole } from "../schemas/membership.schema";
 
 export class MembershipResponseDto {
   @Expose()
+  id: string;
+
+  @Expose()
   userId: string;
 
   @Expose()
@@ -14,6 +17,9 @@ export class MembershipResponseDto {
 
   @Expose()
   isActive: boolean;
+
+  @Expose()
+  schoolName: string;
 
   @Expose()
   joinedAt: Date;

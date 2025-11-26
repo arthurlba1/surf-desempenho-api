@@ -3,7 +3,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { UserRole } from '@/users/types/user-role.type';
 import { MembershipRole } from '@/memberships/schemas/membership.schema';
-import { ActiveSchool, ActiveSchoolSchema } from './active-school.schema';
 
 export type UserDocument = User & Document;
 
@@ -32,12 +31,6 @@ export class User {
 
   @Prop({ required: false })
   currentActiveSchoolId: string;
-
-  @Prop({
-    required: false,
-    type: [ActiveSchoolSchema],
-  })
-  activeSchools: ActiveSchool[];
 
   @Prop({ required: true, default: Date.now })
   createdAt: Date;

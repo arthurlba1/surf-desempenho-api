@@ -4,7 +4,6 @@ import { IsArray, IsEmail, IsEnum, IsInt, IsString, ValidateNested } from 'class
 import { ActiveSchoolResponseDto } from '@/users/dtos/active-school-response.dto';
 import { UserRole } from '@/users/types/user-role.type';
 import { User } from '@/users/schemas/user.schema';
-import { ActiveSchool } from '@/users/schemas/active-school.schema';
 
 class UserResponseDto {
   @Expose()

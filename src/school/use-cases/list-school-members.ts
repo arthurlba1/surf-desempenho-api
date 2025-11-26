@@ -2,28 +2,29 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 
 import { BaseUseCase } from "@/common/use-cases/use-case-handle";
 import { AuthUser } from "@/common/types/auth.types";
-import { ListSchoolMembersResponseDto } from '@/common/dtos/list-school-members-response.dto';
 import { IUseCaseResponse } from "@/common/types/use-case-response";
 import { IMembershipRepository } from "@/memberships/repositories/membership.repository.interface";
-import { ListSchoolMembersDto } from "@/school/dtos/list-school-members.dto";
+import { ListMembershipsResponseDto } from "@/school/dtos/list-memberships-response.dto";
 import { IUserRepository } from "@/users/repositories/user.repository.interface";
 import { queueScheduler } from "rxjs";
 
+
 @Injectable()
-export class ListSchoolMembersUseCase extends BaseUseCase<ListSchoolMembersDto, ListSchoolMembersResponseDto[]> {
+export class ListSchoolMembersUseCase extends BaseUseCase<unknown, ListMembershipsResponseDto[]> {
   constructor(
     private readonly membershipRepository: IMembershipRepository,
     private readonly userRepository: IUserRepository,
   ) { super() }
 
-  async handle(payload: ListSchoolMembersDto, auth: AuthUser): Promise<IUseCaseResponse<ListSchoolMembersResponseDto[]>> {
-    const { schoolId } = payload;
+  async handle(_, auth: AuthUser): Promise<IUseCaseResponse<ListMembershipsResponseDto[]>> {
+    const { currentActiveSchoolId } = auth;
+    if (!currentActiveSchoolId) throw new UnauthorizedException('User not authenticated');
 
     const user = await this.userRepository.findById(auth.id);
     if (!user) throw new UnauthorizedException('User not authenticated');queueScheduler
 
 
-    const results = await this.membershipRepository.findMembersWithUserNameBySchoolId(schoolId);
-    return this.ok('School members listed successfully', results);
+    const results = await this.membershipRepository.findBySchoolId(currentActiveSchoolId);
+    return this.ok('School members listed successfully', ListMembershipsResponseDto.fromEntities(results));
   }
 }

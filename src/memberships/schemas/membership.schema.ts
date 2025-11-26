@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 
 export enum MembershipRole {
   COACH = 'COACH',
@@ -10,11 +10,11 @@ export type MembershipDocument = Membership & Document;
 
 @Schema({ timestamps: false })
 export class Membership {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  @Prop({ required: true })
+  userId: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'School', required: true })
-  schoolId: Types.ObjectId;
+  @Prop({ required: true })
+  schoolId: string;
 
   @Prop({ enum: ['COACH','SURFER'], required: true })
   role: MembershipRole;

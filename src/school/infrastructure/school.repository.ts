@@ -3,7 +3,6 @@ import { InjectModel } from "@nestjs/mongoose";
 import { ClientSession, Model } from "mongoose";
 
 import { RegisterSchoolDto } from "@/school/dtos/register-school.dto";
-import { SchoolResponseDto } from "@/school/dtos/school-response.dto";
 import { School, SchoolDocument } from "@/school/schemas/school.schema";
 import { ISchoolRepository } from "@/school/repositories/school.repository.interface";
 
@@ -11,13 +10,18 @@ import { ISchoolRepository } from "@/school/repositories/school.repository.inter
 export class SchoolRepository implements ISchoolRepository {
   constructor(@InjectModel(School.name) private schoolModel: Model<SchoolDocument>) {}
 
-  async create(data: RegisterSchoolDto, session?: ClientSession): Promise<SchoolResponseDto> {
+  async create(data: RegisterSchoolDto, session?: ClientSession): Promise<SchoolDocument> {
     const school = await new this.schoolModel(data).save({ session });
-    return SchoolResponseDto.fromEntity(school);
+    return school;
   }
 
-  async findById(id: string, session?: ClientSession): Promise<SchoolResponseDto | null> {
+  async findById(id: string, session?: ClientSession): Promise<SchoolDocument | null> {
     const school = await this.schoolModel.findById(id, null, { session }).exec();
-    return school ? SchoolResponseDto.fromEntity(school) : null;
+    return school || null;
+  }
+
+  async findManyByIds(ids: string[], session?: ClientSession): Promise<SchoolDocument[]> {
+    const schools = await this.schoolModel.find({ _id: { $in: ids } }, null, { session }).exec();
+    return schools;
   }
 }

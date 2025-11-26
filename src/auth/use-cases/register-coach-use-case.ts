@@ -12,7 +12,6 @@ import { IMembershipRepository } from "@/memberships/repositories/membership.rep
 import { MembershipRole } from "@/memberships/schemas/membership.schema";
 import { IUserRepository } from "@/users/repositories/user.repository.interface";
 import { ISchoolRepository } from "@/school/repositories/school.repository.interface";
-import { ActiveSchool } from "@/users/schemas/active-school.schema";
 
 @Injectable()
 export class RegisterCoachUseCase extends BaseUseCase<RegisterDto, AuthResponseDto> {
@@ -45,8 +44,6 @@ export class RegisterCoachUseCase extends BaseUseCase<RegisterDto, AuthResponseD
 
       await this.userRepository.setCurrentActiveSchoolId(user.id, school.id, session);
 
-      await this.userRepository.updateActiveSchools(user.id, { schoolId: school.id, isActive: true, role: MembershipRole.COACH } as ActiveSchool, session);
-
       await session.commitTransaction();
       session.endSession();
 
@@ -63,11 +60,11 @@ export class RegisterCoachUseCase extends BaseUseCase<RegisterDto, AuthResponseD
 
         const school = await this.schoolRepository.create({ name: `${payload.name}'s School`, owner: user.id, onHold: true } as any);
 
+        /* Create membership for the user in the school */
         await this.membershipRepository.create({ userId: user.id, schoolId: school.id, role: MembershipRole.COACH });
 
         await this.userRepository.setCurrentActiveSchoolId(user.id, school.id);
-        await this.userRepository.updateActiveSchools(user.id, { schoolId: school.id, isActive: true, role: MembershipRole.COACH } as ActiveSchool);
-        
+
         const accessToken = this.generateToken({ id: user.id, email: user.email, currentActiveSchoolId: school.id });
         return this.ok('User created successfully', AuthResponseDto.fromToken(accessToken));
       }
