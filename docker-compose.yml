@@ -1,4 +1,18 @@
 services:
+  app:
+    build: .
+    container_name: surf-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://surfadmin:surfadmin@mongo:27017/surf-app?authSource=admin
+    depends_on:
+      - mongo
+    networks:
+      - surf-network
+
   mongo:
     image: mongo:6
     container_name: surf-mongo
@@ -10,7 +24,13 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: surfadmin
     volumes:
       - mongo_data:/data/db
+    networks:
+      - surf-network
 
 volumes:
   mongo_data:
     driver: local
+
+networks:
+  surf-network:
+    driver: bridge

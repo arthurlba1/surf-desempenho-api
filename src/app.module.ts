@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -9,21 +9,28 @@ import { UsersModule } from '@/users/users.module';
 import { SessionModule } from './session/session.module';
 import { SchoolModule } from './school/school.module';
 import { MembershipsModule } from './memberships/memberships.module';
+import { AthletesModule } from './athletes/athletes.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    MongooseModule.forRoot('mongodb://surfadmin:surfadmin@localhost:27017/surf-app?authSource=admin', {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI', 'mongodb://surfadmin:surfadmin@localhost:27017/surf-app?authSource=admin'),
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      }),
+      inject: [ConfigService],
     }),
     UsersModule,
     AuthModule,
     SessionModule,
     SchoolModule,
-    MembershipsModule
+    MembershipsModule,
+    AthletesModule
   ],
   controllers: [],
   providers: [

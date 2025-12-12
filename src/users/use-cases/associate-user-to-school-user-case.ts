@@ -10,6 +10,7 @@ import { AssociateUserToSchoolDto } from "@/users/dtos/associate-user-to-school.
 import { MembershipRole } from "@/memberships/schemas/membership.schema";
 import { IMembershipRepository } from "@/memberships/repositories/membership.repository.interface";
 import { ISchoolRepository } from "@/school/repositories/school.repository.interface";
+import { UserRole } from "@/users/types/user-role.type";
 
 @Injectable()
 export class AssociateUserToSchoolUseCase extends BaseUseCase<AssociateUserToSchoolDto, UserResponseDto> {
@@ -30,10 +31,23 @@ export class AssociateUserToSchoolUseCase extends BaseUseCase<AssociateUserToSch
     if (!school) throw new ConflictException('School not found');
 
     await this.userRepository.setCurrentActiveSchoolId(user.id, payload.schoolId);
+    
+    // Map UserRole to MembershipRole
+    let membershipRole: MembershipRole;
+    if (user.role === UserRole.HEADCOACH) {
+      membershipRole = MembershipRole.HEADCOACH;
+    } else if (user.role === UserRole.COACH) {
+      membershipRole = MembershipRole.COACH;
+    } else if (user.role === UserRole.SURFER) {
+      membershipRole = MembershipRole.SURFER;
+    } else {
+      throw new ConflictException('Invalid user role for membership');
+    }
+    
     await this.membershipRepository.create({
       userId: user.id,
       schoolId: school.id,
-      role: user.role.toUpperCase() as unknown as MembershipRole,
+      role: membershipRole,
     } as any);
 
     return this.ok('User associated to school successfully', UserResponseDto.fromEntity(user));

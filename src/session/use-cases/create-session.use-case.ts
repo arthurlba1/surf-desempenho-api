@@ -6,7 +6,7 @@ import { AuthUser } from '@/common/types/auth.types';
 import { CreateSessionDto } from '@/session/dtos/create-session.dto';
 import { SessionResponseDto } from '@/session/dtos/session-response.dto';
 import { ISessionRepository } from '@/session/repositories/session.repository.interface';
-import { MembershipRole } from '@/memberships/schemas/membership.schema';
+import { MembershipRole, isCoachRole } from '@/memberships/schemas/membership.schema';
 import { IMembershipRepository } from '@/memberships/repositories/membership.repository.interface';
 import { IUserRepository } from '@/users/repositories/user.repository.interface';
 
@@ -27,7 +27,7 @@ export class CreateSessionUseCase extends BaseUseCase<CreateSessionDto, SessionR
     const coachMembership = await this.membershipRepository.findByUserIdAndSchoolId(coachUser.id, auth.currentActiveSchoolId);
     if (!coachMembership) throw new UnauthorizedException('User not in active school');
 
-    if (coachMembership.role !== MembershipRole.COACH) throw new UnauthorizedException('User is not a coach');
+    if (!isCoachRole(coachMembership.role)) throw new UnauthorizedException('User is not a coach');
 
     const validAthletes = [] as { userId: string; name: string }[];
 

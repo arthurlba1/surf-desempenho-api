@@ -66,7 +66,7 @@ async function seed() {
     await membershipRepo.create({
       userId: headCoach.id,
       schoolId: headCoachSchool.id,
-      role: MembershipRole.COACH,
+      role: MembershipRole.HEADCOACH,
     } as CreateMembershipRelationDto);
 
     await userRepo.setCurrentActiveSchoolId(headCoach.id, headCoachSchool.id);

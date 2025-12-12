@@ -6,7 +6,7 @@ import { AuthUser } from '@/common/types/auth.types';
 import { ISessionRepository, ListSessionsFilters } from '@/session/repositories/session.repository.interface';
 import { SessionSummaryDto } from '@/session/dtos/session-summary.dto';
 import { IMembershipRepository } from '@/memberships/repositories/membership.repository.interface';
-import { MembershipRole } from '@/memberships/schemas/membership.schema';
+import { MembershipRole, isCoachRole } from '@/memberships/schemas/membership.schema';
 import { ISchoolRepository } from '@/school/repositories/school.repository.interface';
 
 export type ListSessionsDetail = {
@@ -48,7 +48,7 @@ export class ListSessionsUseCase extends BaseUseCase<void, ListSessionsDetail> {
         throw new UnauthorizedException('Membership not found or inactive');
       }
 
-      if (membership.role === MembershipRole.COACH) {
+      if (isCoachRole(membership.role)) {
         return { coachUserId: auth.id };
       }
 
