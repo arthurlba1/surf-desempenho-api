@@ -29,7 +29,8 @@ import { SchoolModule } from '@/school/school.module';
     DeleteAthleteFromSessionUseCase,
     ListSessionsUseCase,
   ],
-  controllers: [SessionController]
+  controllers: [SessionController],
+  exports: [ISessionRepository],
 })
 
 export class SessionModule {}

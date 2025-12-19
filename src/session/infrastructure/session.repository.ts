@@ -43,7 +43,10 @@ export class SessionRepository implements ISessionRepository {
       filter['coach.userId'] = filters.coachUserId;
     }
     if (filters?.athleteUserId) {
-      filter['athletes.userId'] = filters.athleteUserId;
+      // Usar $elemMatch para buscar em arrays aninhados
+      filter['athletes'] = {
+        $elemMatch: { userId: filters.athleteUserId }
+      };
     }
 
     const query = this.sessionModel.find(filter, null, { session }).sort({ createdAt: -1 });

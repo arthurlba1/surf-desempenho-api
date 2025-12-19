@@ -8,6 +8,9 @@ import { IUserRepository } from '@/users/repositories/user.repository.interface'
 import { UserRole } from '@/users/types/user-role.type';
 import { MembershipRole } from '@/memberships/schemas/membership.schema';
 import { AthleteBodyDataResponseDto } from '@/athletes/dtos/athlete-body-data-response.dto';
+import { IAthleteBodyDataRepository } from '@/athletes/repositories/athlete-body-data.repository.interface';
+import { AthleteBodyDataMapper } from '@/athletes/dtos/athlete-body-data-mapper';
+import { ISessionRepository } from '@/session/repositories/session.repository.interface';
 
 @Injectable()
 export class GetAthleteBodyDataUseCase extends BaseUseCase<
@@ -17,6 +20,8 @@ export class GetAthleteBodyDataUseCase extends BaseUseCase<
   constructor(
     private readonly membershipRepository: IMembershipRepository,
     private readonly userRepository: IUserRepository,
+    private readonly bodyDataRepository: IAthleteBodyDataRepository,
+    private readonly sessionRepository: ISessionRepository,
   ) {
     super();
   }
@@ -30,9 +35,20 @@ export class GetAthleteBodyDataUseCase extends BaseUseCase<
       throw new UnauthorizedException('User not authenticated or no active school');
     }
 
+    // Verificar se está em alguma sessão da escola primeiro
+    const sessions = await this.sessionRepository.findAllBySchoolId(currentActiveSchoolId, {
+      athleteUserId: id,
+    });
+    const isInSession = sessions.length > 0;
+
     // Verificar se o usuário existe e é um SURFER
     const user = await this.userRepository.findById(id);
     if (!user || user.role !== UserRole.SURFER) {
+      // Se está em uma sessão mas não existe no banco, retornar dados vazios usando o mapper
+      if (isInSession) {
+        const emptyBodyData = AthleteBodyDataMapper.toDto(null);
+        return this.ok('Athlete body data retrieved successfully (empty - athlete not in database)', emptyBodyData);
+      }
       throw new NotFoundException('Athlete not found');
     }
 
@@ -42,13 +58,17 @@ export class GetAthleteBodyDataUseCase extends BaseUseCase<
       currentActiveSchoolId
     );
 
+    // Se não tem membership ativo, verificar se está em alguma sessão da escola
     if (!membership || membership.role !== MembershipRole.SURFER || !membership.isActive) {
-      throw new NotFoundException('Athlete not found in your active school');
+      // Se não está em nenhuma sessão da escola, retornar erro
+      if (!isInSession) {
+        throw new NotFoundException('Athlete not found in your active school');
+      }
     }
 
-    // TODO: Buscar dados corporais reais quando o schema for criado
-    // Por enquanto retorna dados vazios
-    const bodyData = new AthleteBodyDataResponseDto();
+    // Buscar dados corporais do banco
+    const bodyDataEntity = await this.bodyDataRepository.findByAthleteId(id);
+    const bodyData = AthleteBodyDataMapper.toDto(bodyDataEntity);
 
     return this.ok('Athlete body data retrieved successfully', bodyData);
   }

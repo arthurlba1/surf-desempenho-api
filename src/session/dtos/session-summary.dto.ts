@@ -56,6 +56,8 @@ export class SessionSummaryDto {
     const entityWithId = {
       ...plain,
       id: plain.id || plain._id?.toString() || plain._id,
+      // Garantir que inProgress sempre seja um boolean, nunca null
+      inProgress: plain.inProgress ?? false,
     };
 
     return plainToInstance(SessionSummaryDto, entityWithId, {
