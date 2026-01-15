@@ -4,12 +4,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
 
 import { JwtAuthGlobalGuard } from '@/auth/guards/jwt-auth.global.guard';
+import { SchoolContextGuard } from '@/auth/guards/school-context.guard';
 import { AuthModule } from '@/auth/auth.module';
-import { UsersModule } from '@/users/users.module';
-import { SessionModule } from './session/session.module';
-import { SchoolModule } from './school/school.module';
-import { MembershipsModule } from './memberships/memberships.module';
-import { AthletesModule } from './athletes/athletes.module';
+import { IdentityModule } from '@/identity/identity.module';
+import { SchoolModule } from '@/school/school.module';
+import { AthleteModule } from '@/athlete/athlete.module';
+import { SyncModule } from '@/sync/sync.module';
 
 @Module({
   imports: [
@@ -25,18 +25,21 @@ import { AthletesModule } from './athletes/athletes.module';
       }),
       inject: [ConfigService],
     }),
-    UsersModule,
-    AuthModule,
-    SessionModule,
+    IdentityModule,
     SchoolModule,
-    MembershipsModule,
-    AthletesModule
+    AthleteModule,
+    AuthModule,
+    SyncModule,
   ],
   controllers: [],
   providers: [
     {
       provide: APP_GUARD,
       useClass: JwtAuthGlobalGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SchoolContextGuard,
     },
   ],
 })

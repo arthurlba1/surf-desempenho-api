@@ -1,7 +1,7 @@
 import { Expose, plainToInstance, Type } from "class-transformer";
 import { IsBoolean, IsString, ValidateNested } from "class-validator";
 
-import { MembershipDocument } from "@/memberships/schemas/membership.schema";
+//import { MembershipDocument } from "@/memberships/schemas/membership.schema";
 
 class MembershipResponseDto {
   @Expose()
@@ -36,13 +36,13 @@ export class ListMembershipsResponseDto {
   @IsBoolean()
   isActive: boolean;
 
-  static fromEntity(entity: MembershipDocument): ListMembershipsResponseDto {
+  static fromEntity(entity: any): ListMembershipsResponseDto {
     return plainToInstance(ListMembershipsResponseDto, entity, {
       excludeExtraneousValues: true,
     });
   }
 
-  static fromEntities(entities: MembershipDocument[]): ListMembershipsResponseDto[] {
+  static fromEntities(entities: any[]): ListMembershipsResponseDto[] {
     return entities.map(entity => this.fromEntity(entity));
   }
 }

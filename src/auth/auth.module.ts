@@ -5,19 +5,20 @@ import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from '@/auth/auth.controller';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
-import { RegisterSurferUseCase } from '@/auth/use-cases/register-surfer-use-case';
-import { RegisterCoachUseCase } from '@/auth/use-cases/register-coach-use-case';
-import { LoggedUseCase } from '@/auth/use-cases/logged-use-case';
-import { LoginUseCase } from '@/auth/use-cases/login-use-case';
-import { UsersModule } from '@/users/users.module';
+import { RegisterUseCase } from '@/auth/application/commands/register.use-case';
+import { RegisterSurferUseCase } from '@/auth/application/commands/register-surfer.use-case';
+import { RegisterCoachUseCase } from '@/auth/application/commands/register-coach.use-case';
+import { SwitchActiveSchoolUseCase } from '@/auth/application/commands/switch-active-school.use-case';
+import { GetLoggedUserUseCase } from '@/auth/application/queries/get-logged-user.use-case';
+import { LoginUseCase } from '@/auth/application/queries/login.use-case';
+import { IdentityModule } from '@/identity/identity.module';
 import { SchoolModule } from '@/school/school.module';
-import { MembershipsModule } from '@/memberships/memberships.module';
+import { SchoolContextGuard } from '@/auth/guards/school-context.guard';
 
 @Module({
   imports: [
-    UsersModule,
+    IdentityModule,
     SchoolModule,
-    MembershipsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -31,7 +32,16 @@ import { MembershipsModule } from '@/memberships/memberships.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [JwtStrategy, LoggedUseCase, LoginUseCase, RegisterSurferUseCase, RegisterCoachUseCase],
-  exports: [],
+  providers: [
+    JwtStrategy,
+    GetLoggedUserUseCase,
+    LoginUseCase,
+    RegisterUseCase,
+    RegisterSurferUseCase,
+    RegisterCoachUseCase,
+    SwitchActiveSchoolUseCase,
+    SchoolContextGuard,
+  ],
+  exports: [SchoolContextGuard],
 })
 export class AuthModule {}

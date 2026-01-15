@@ -1,19 +1,44 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import crypto from 'node:crypto';
+import { randomBytes } from 'crypto';
+
+import { Sync, SyncSchema } from '@/common/schemas/sync.schema';
 
 export type SchoolDocument = School & Document;
 
 @Schema({ timestamps: true })
 export class School {
+  @Prop({ required: false }) // _id can be generated on client
+  _id?: string;
+
   @Prop({ required: true })
   name: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  owner: string;
+  ownerId: string;
 
-  @Prop({ default: true })
-  onHold: boolean;
+  // Permanent invite token for MVP. Generated server-side on create.
+  // - unique+sparse to avoid index issues for legacy docs without this field
+  @Prop({
+    required: false,
+    unique: true,
+    sparse: true,
+    index: true,
+    default: () => randomBytes(16).toString('hex'),
+  })
+  inviteToken?: string;
+
+  @Prop({ type: SyncSchema, required: false })
+  sync?: Sync;
+
+  @Prop({ default: true, required: false })
+  onHold?: boolean;
+
+  @Prop({ required: true, default: Date.now })
+  createdAt: Date;
+
+  @Prop({ required: true, default: Date.now })
+  updatedAt: Date;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);

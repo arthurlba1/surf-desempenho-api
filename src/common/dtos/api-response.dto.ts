@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 
 export class ApiResponseDto<T> {
   @ApiProperty({ type: Object })
-  data?: T;
+  detail?: T;
 
   @ApiProperty({ type: [String], oneOf: [
     { type: 'string' },

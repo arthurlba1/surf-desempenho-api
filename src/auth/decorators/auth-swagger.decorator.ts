@@ -1,18 +1,18 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiBody, ApiExtraModels, getSchemaPath, ApiBearerAuth } from '@nestjs/swagger';
 
-import { LoginDto } from '@/auth/dtos/login.dto';
-import { RegisterDto } from '@/auth/dtos/register.dto';
-import { AuthResponseDto } from '@/auth/dtos/auth-response.dto';
+import { LoginQuery } from '@/auth/application/queries/login.query';
+import { RegisterCommand } from '@/auth/application/commands/register.command';
+import { AuthResponse } from '@/auth/application/responses/auth.response';
 import { ApiResponseDto } from '@/common/dtos/api-response.dto';
-import { UserResponseDto } from '@/users/dtos/user-response.dto';
+import { LoggedUserResponse, SchoolInfo } from '@/auth/application/responses/logged-user.response';
 
 
 export function ApiRegisterDocumentation() {
   return applyDecorators(
     ApiOperation({ summary: 'Register a new user' }),
-    ApiBody({ type: RegisterDto }),
-    ApiExtraModels(AuthResponseDto, ApiResponseDto),
+    ApiBody({ type: RegisterCommand }),
+    ApiExtraModels(AuthResponse, ApiResponseDto),
     ApiResponse({
       status: HttpStatus.CREATED,
       description: 'User registered successfully',
@@ -21,7 +21,7 @@ export function ApiRegisterDocumentation() {
           { $ref: getSchemaPath(ApiResponseDto) },
           {
             properties: {
-              data: { $ref: getSchemaPath(AuthResponseDto) },
+              data: { $ref: getSchemaPath(AuthResponse) },
               message: { type: 'string', example: 'User registered successfully' },
               statusCode: { type: 'number', example: HttpStatus.CREATED }
             }
@@ -86,8 +86,8 @@ export function ApiRegisterDocumentation() {
 export function ApiLoginDocumentation() {
   return applyDecorators(
     ApiOperation({ summary: 'Login a user' }),
-    ApiBody({ type: LoginDto }),
-    ApiExtraModels(AuthResponseDto, ApiResponseDto),
+    ApiBody({ type: LoginQuery }),
+    ApiExtraModels(AuthResponse, ApiResponseDto),
     ApiResponse({
       status: HttpStatus.OK,
       description: 'User logged in successfully',
@@ -96,7 +96,7 @@ export function ApiLoginDocumentation() {
           { $ref: getSchemaPath(ApiResponseDto) },
           {
             properties: {
-              data: { $ref: getSchemaPath(AuthResponseDto) },
+              data: { $ref: getSchemaPath(AuthResponse) },
               message: { type: 'string', example: 'User logged in successfully' },
               statusCode: { type: 'number', example: HttpStatus.OK }
             }
@@ -178,7 +178,7 @@ export function ApiGetLoggedUserDocumentation() {
   return applyDecorators(
     ApiOperation({ summary: 'Get current user profile' }),
     ApiBearerAuth('JWT-auth'),
-    ApiExtraModels(UserResponseDto, ApiResponseDto),
+    ApiExtraModels(LoggedUserResponse, SchoolInfo, ApiResponseDto),
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Current user profile',
@@ -187,7 +187,7 @@ export function ApiGetLoggedUserDocumentation() {
           { $ref: getSchemaPath(ApiResponseDto) },
           {
             properties: {
-              data: { $ref: getSchemaPath(UserResponseDto) },
+              data: { $ref: getSchemaPath(LoggedUserResponse) },
               message: { type: 'string', example: 'User profile fetched successfully' },
               statusCode: { type: 'number', example: HttpStatus.OK }
             }

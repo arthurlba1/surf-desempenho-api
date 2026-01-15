@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch } from '@nestjs/common';
 
 import {
   ApiGetLoggedUserDocumentation,
@@ -6,54 +6,53 @@ import {
   ApiRegisterDocumentation
 } from '@/auth/decorators/auth-swagger.decorator';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
-import { AuthResponseDto } from '@/auth/dtos/auth-response.dto';
-import { RegisterDto } from '@/auth/dtos/register.dto';
-import { LoginDto } from '@/auth/dtos/login.dto';
+import { AuthResponse } from '@/auth/application/responses/auth.response';
+import { RegisterCommand } from '@/auth/application/commands/register.command';
+import { LoginQuery } from '@/auth/application/queries/login.query';
 import { Public } from '@/auth/guards/public.guard';
-import { RegisterSurferUseCase } from '@/auth/use-cases/register-surfer-use-case';
-import { RegisterCoachUseCase } from '@/auth/use-cases/register-coach-use-case';
-import { LoggedUseCase } from '@/auth/use-cases/logged-use-case';
-import { LoginUseCase } from '@/auth/use-cases/login-use-case';
+import { RegisterUseCase } from '@/auth/application/commands/register.use-case';
+import { GetLoggedUserUseCase } from '@/auth/application/queries/get-logged-user.use-case';
+import { LoginUseCase } from '@/auth/application/queries/login.use-case';
 import { ApiResponseDto } from '@/common/dtos/api-response.dto';
 import type { AuthUser } from '@/common/types/auth.types';
-import { UserResponseDto } from '@/users/dtos/user-response.dto';
-import { UserRole } from '@/users/types/user-role.type';
+import { LoggedUserResponse } from '@/auth/application/responses/logged-user.response';
+import { SwitchActiveSchoolCommand } from '@/auth/application/commands/switch-active-school.command';
+import { SwitchActiveSchoolUseCase } from '@/auth/application/commands/switch-active-school.use-case';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly loginUseCase: LoginUseCase,
-    private readonly registerCoachUseCase: RegisterCoachUseCase,
-    private readonly registerSurferUseCase: RegisterSurferUseCase,
-    private readonly loggedUseCase: LoggedUseCase
+    private readonly registerUseCase: RegisterUseCase,
+    private readonly getLoggedUserUseCase: GetLoggedUserUseCase,
+    private readonly switchActiveSchoolUseCase: SwitchActiveSchoolUseCase,
   ){}
 
   @Public()
   @Post('register')
   @ApiRegisterDocumentation()
-  async register(@Body() registerDto: RegisterDto): Promise<ApiResponseDto<AuthResponseDto>> {
-    console.log('registerDto', registerDto);
-    if (registerDto.role === UserRole.COACH) {
-      return await this.registerCoachUseCase.handle(registerDto)
-    }
-    if (registerDto.role === UserRole.SURFER) {
-      return await this.registerSurferUseCase.handle(registerDto)
-    }
-
-    throw new BadRequestException('Invalid role');
+  async register(@Body() command: RegisterCommand): Promise<ApiResponseDto<AuthResponse>> {
+    return await this.registerUseCase.handle(command);
   }
 
   @Public()
   @Post('login')
   @ApiLoginDocumentation()
-  async login(@Body() loginDto: LoginDto): Promise<ApiResponseDto<AuthResponseDto>> {
-    console.log('loginDto', loginDto);
-    return await this.loginUseCase.handle(loginDto);
+  async login(@Body() query: LoginQuery): Promise<ApiResponseDto<AuthResponse>> {
+    return await this.loginUseCase.handle(query);
   }
 
   @Get('me')
   @ApiGetLoggedUserDocumentation()
-  async getLoggedUser(@CurrentUser() user: AuthUser): Promise<ApiResponseDto<UserResponseDto>> {
-    return await this.loggedUseCase.handle(undefined, user);
+  async getLoggedUser(@CurrentUser() user: AuthUser): Promise<ApiResponseDto<LoggedUserResponse>> {
+    return await this.getLoggedUserUseCase.handle(undefined, user);
+  }
+
+  @Patch('me/active-school')
+  async switchActiveSchool(
+    @Body() command: SwitchActiveSchoolCommand,
+    @CurrentUser() user: AuthUser,
+  ): Promise<ApiResponseDto<AuthResponse>> {
+    return await this.switchActiveSchoolUseCase.handle(command, user);
   }
 }
