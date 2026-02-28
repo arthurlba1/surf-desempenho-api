@@ -113,6 +113,7 @@ export class UpdateTrainingSessionUseCase extends BaseUseCase<
       waveConditions: payload.waveConditions || existingSession.waveConditions,
       audioMessages: existingSession.audioMessages,
       sync: existingSession.sync,
+      evaluatedParticipantsCount: existingSession.evaluatedParticipantsCount ?? 0,
       createdAt: existingSession.createdAt,
       updatedAt: new Date(),
     });

@@ -81,6 +81,12 @@ export class TrainingSessionRepository implements ITrainingSessionRepositoryPort
     return TrainingSessionEntity.fromDocument(updated);
   }
 
+  async incrementEvaluatedCount(sessionId: string): Promise<void> {
+    await this.trainingSessionModel
+      .findByIdAndUpdate(sessionId, { $inc: { evaluatedParticipantsCount: 1 } })
+      .exec();
+  }
+
   async remove(id: string): Promise<void> {
     await this.trainingSessionModel.findByIdAndDelete(id).exec();
   }

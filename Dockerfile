@@ -1,5 +1,5 @@
-# Use Node.js 20 Alpine image (NestJS 11 requires Node 20+)
-FROM node:20-alpine
+# Use Node.js 20 (non-Alpine - better SSL/TLS compatibility with MongoDB Atlas)
+FROM node:20
 
 # Set working directory
 WORKDIR /app
@@ -19,8 +19,8 @@ RUN npm run build
 # Remove dev dependencies after build
 RUN npm prune --production
 
-# Expose port
-EXPOSE 3000
+# Expose port (Cloud Run uses 8080 by default)
+EXPOSE 8080
 
 # Start the application
 CMD ["npm", "run", "start:prod"]

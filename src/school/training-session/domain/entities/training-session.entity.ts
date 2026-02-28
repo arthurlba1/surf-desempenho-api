@@ -24,6 +24,7 @@ export class TrainingSessionEntity {
     public waveConditions?: WaveConditions,
     public audioMessages: AudioMessage[] = [],
     public sync?: Sync,
+    public evaluatedParticipantsCount: number = 0,
     public readonly createdAt?: Date,
     public readonly updatedAt?: Date,
   ) {}
@@ -43,6 +44,7 @@ export class TrainingSessionEntity {
     waveConditions?: WaveConditions;
     audioMessages?: AudioMessage[];
     sync?: Sync;
+    evaluatedParticipantsCount?: number;
     createdAt?: Date;
     updatedAt?: Date;
   }): TrainingSessionEntity {
@@ -67,6 +69,7 @@ export class TrainingSessionEntity {
       data.waveConditions,
       data.audioMessages || [],
       sync,
+      data.evaluatedParticipantsCount ?? 0,
       data.createdAt || new Date(),
       data.updatedAt || new Date(),
     );
@@ -92,6 +95,7 @@ export class TrainingSessionEntity {
         version: 1,
         updatedAt: document.updatedAt || new Date(),
       },
+      document.evaluatedParticipantsCount ?? 0,
       document.createdAt,
       document.updatedAt,
     );
@@ -113,6 +117,7 @@ export class TrainingSessionEntity {
       waveConditions: this.waveConditions,
       audioMessages: this.audioMessages,
       sync: this.sync,
+      evaluatedParticipantsCount: this.evaluatedParticipantsCount,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

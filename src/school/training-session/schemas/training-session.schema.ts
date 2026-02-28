@@ -100,6 +100,9 @@ export class TrainingSession {
 
   @Prop({ type: SyncSchema, required: false })
   sync?: Sync;
+
+  @Prop({ default: 0 })
+  evaluatedParticipantsCount?: number;
 }
 
 export const TrainingSessionSchema = SchemaFactory.createForClass(TrainingSession);

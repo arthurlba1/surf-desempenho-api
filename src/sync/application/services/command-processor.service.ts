@@ -23,6 +23,8 @@ import { CreateMyBoardSetupUseCase } from '@/athlete/application/commands/create
 import { CreateMyBoardSetupCommand } from '@/athlete/application/commands/create-my-board-setup.command';
 import { CreateTrainingSessionUseCase } from '@/school/training-session/application/commands/create-training-session.use-case';
 import { CreateTrainingSessionCommand } from '@/school/training-session/application/commands/create-training-session.command';
+import { SubmitAthleteEvaluationUseCase } from '@/school/training-session/application/commands/submit-athlete-evaluation.use-case';
+import { SubmitAthleteEvaluationCommand } from '@/school/training-session/application/commands/submit-athlete-evaluation.command';
 
 export interface CommandProcessResult {
   success: boolean;
@@ -48,6 +50,7 @@ export class CommandProcessorService {
     private readonly createMyFinUseCase: CreateMyFinUseCase,
     private readonly createMyBoardSetupUseCase: CreateMyBoardSetupUseCase,
     private readonly createTrainingSessionUseCase: CreateTrainingSessionUseCase,
+    private readonly submitAthleteEvaluationUseCase: SubmitAthleteEvaluationUseCase,
   ) {}
 
   async processCommand(command: SyncCommand): Promise<CommandProcessResult> {
@@ -73,6 +76,8 @@ export class CommandProcessorService {
           return await this.processCreateBoardSetup(command);
         case 'CREATE_TRAINING_SESSION':
           return await this.processCreateTrainingSession(command);
+        case 'SUBMIT_ATHLETE_EVALUATION':
+          return await this.processSubmitAthleteEvaluation(command);
         default:
           return {
             success: false,
@@ -288,6 +293,29 @@ export class CommandProcessorService {
       success: true,
       result: {
         id: result.detail?.id,
+      },
+    };
+  }
+
+  private async processSubmitAthleteEvaluation(command: SyncCommand): Promise<CommandProcessResult> {
+    const payload = command.payload as SubmitAthleteEvaluationCommand & { sessionId: string };
+    if (!payload.sessionId || !payload.athleteId) {
+      return {
+        success: false,
+        error: 'sessionId and athleteId are required for SUBMIT_ATHLETE_EVALUATION',
+      };
+    }
+    const authUser: AuthUser = {
+      id: command.actorUserId,
+      email: '',
+      currentActiveSchoolId: command.schoolId || undefined,
+    };
+
+    const result = await this.submitAthleteEvaluationUseCase.handle(payload, authUser);
+    return {
+      success: true,
+      result: {
+        sessionId: result.detail?.id,
       },
     };
   }

@@ -18,11 +18,15 @@ import { SyncModule } from '@/sync/sync.module';
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI', 'mongodb://surfadmin:surfadmin@localhost:27017/surf-app?authSource=admin'),
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const uri = configService.get<string>('MONGODB_URI', 'mongodb://surfadmin:surfadmin@localhost:27017/surf-app?authSource=admin');
+        
+        return {
+          uri,
+          serverSelectionTimeoutMS: 10000,
+          socketTimeoutMS: 45000,
+        };
+      },
       inject: [ConfigService],
     }),
     IdentityModule,
