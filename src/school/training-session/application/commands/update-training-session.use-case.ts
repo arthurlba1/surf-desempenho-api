@@ -5,6 +5,7 @@ import { IUseCaseResponse } from '@/common/types/use-case-response';
 import type { AuthUser } from '@/common/types/auth.types';
 import { UpdateTrainingSessionCommand } from './update-training-session.command';
 import { ITrainingSessionRepositoryPort } from '@/school/training-session/domain/ports/training-session.repository.port';
+import { IAthleteEvaluationRepositoryPort } from '@/school/training-session/domain/ports/athlete-evaluation.repository.port';
 import { TrainingSessionEntity } from '@/school/training-session/domain/entities/training-session.entity';
 import { TrainingSessionStatus } from '@/school/training-session/schemas/training-session.schema';
 import { IMembershipRepositoryPort } from '@/school/domain/ports/membership.repository.port';
@@ -18,6 +19,7 @@ export class UpdateTrainingSessionUseCase extends BaseUseCase<
   constructor(
     private readonly trainingSessionRepository: ITrainingSessionRepositoryPort,
     private readonly membershipRepository: IMembershipRepositoryPort,
+    private readonly evaluationRepository: IAthleteEvaluationRepositoryPort,
   ) {
     super();
   }
@@ -98,6 +100,16 @@ export class UpdateTrainingSessionUseCase extends BaseUseCase<
       }
     }
 
+    // Recompute evaluatedParticipantsCount against the new participant list to avoid stale counts
+    let evaluatedParticipantsCount = existingSession.evaluatedParticipantsCount ?? 0;
+    if (payload.participants !== undefined) {
+      const existingEvaluations = await this.evaluationRepository.findBySessionId(payload.id);
+      const newParticipantSet = new Set(payload.participants);
+      evaluatedParticipantsCount = existingEvaluations.filter((e) =>
+        newParticipantSet.has(e.athleteId),
+      ).length;
+    }
+
     const updatedEntity = TrainingSessionEntity.create({
       id: existingSession.id,
       schoolId: existingSession.schoolId,
@@ -113,7 +125,7 @@ export class UpdateTrainingSessionUseCase extends BaseUseCase<
       waveConditions: payload.waveConditions || existingSession.waveConditions,
       audioMessages: existingSession.audioMessages,
       sync: existingSession.sync,
-      evaluatedParticipantsCount: existingSession.evaluatedParticipantsCount ?? 0,
+      evaluatedParticipantsCount,
       createdAt: existingSession.createdAt,
       updatedAt: new Date(),
     });

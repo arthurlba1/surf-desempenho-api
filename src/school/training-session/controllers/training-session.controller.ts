@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -6,9 +7,11 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { ApiResponseDto } from '@/common/dtos/api-response.dto';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
@@ -23,6 +26,8 @@ import { UpdateTrainingSessionCommand } from '@/school/training-session/applicat
 import { UpdateTrainingSessionUseCase } from '@/school/training-session/application/commands/update-training-session.use-case';
 import { SubmitAthleteEvaluationCommand } from '@/school/training-session/application/commands/submit-athlete-evaluation.command';
 import { SubmitAthleteEvaluationUseCase } from '@/school/training-session/application/commands/submit-athlete-evaluation.use-case';
+import { SubmitSetupEvaluationCommand } from '@/school/training-session/application/commands/submit-setup-evaluation.command';
+import { SubmitSetupEvaluationUseCase } from '@/school/training-session/application/commands/submit-setup-evaluation.use-case';
 import { SendAudioMessageCommand } from '@/school/training-session/application/commands/send-audio-message.command';
 import { SendAudioMessageUseCase } from '@/school/training-session/application/commands/send-audio-message.use-case';
 import { GetTrainingSessionsQuery } from '@/school/training-session/application/queries/get-training-sessions.query';
@@ -31,9 +36,11 @@ import { GetTrainingSessionUseCase } from '@/school/training-session/application
 import {
   TrainingSessionResponse,
   toEvaluationResponse,
+  toSetupEvaluationResponse,
   toSessionWithEvaluationsResponse,
 } from '@/school/training-session/application/responses/training-session.response';
 import { IAthleteEvaluationRepositoryPort } from '@/school/training-session/domain/ports/athlete-evaluation.repository.port';
+import { ISetupEvaluationRepositoryPort } from '@/school/training-session/domain/ports/setup-evaluation.repository.port';
 
 @ApiTags('Training Sessions')
 @Controller('school/training-sessions')
@@ -43,9 +50,11 @@ export class TrainingSessionController {
     private readonly updateTrainingSessionUseCase: UpdateTrainingSessionUseCase,
     private readonly sendAudioMessageUseCase: SendAudioMessageUseCase,
     private readonly submitAthleteEvaluationUseCase: SubmitAthleteEvaluationUseCase,
+    private readonly submitSetupEvaluationUseCase: SubmitSetupEvaluationUseCase,
     private readonly getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
     private readonly getTrainingSessionUseCase: GetTrainingSessionUseCase,
     private readonly evaluationRepository: IAthleteEvaluationRepositoryPort,
+    private readonly setupEvaluationRepository: ISetupEvaluationRepositoryPort,
   ) {}
 
   @Post()
@@ -102,10 +111,14 @@ export class TrainingSessionController {
     const result = await this.getTrainingSessionUseCase.handle({ id }, auth);
     const session = result.detail as any;
     if (!session) return result as ApiResponseDto<TrainingSessionResponse>;
-    const evaluations = await this.evaluationRepository.findBySessionId(id);
+    const [evaluations, setupEvaluations] = await Promise.all([
+      this.evaluationRepository.findBySessionId(id),
+      this.setupEvaluationRepository.findBySessionId(id),
+    ]);
     const response = toSessionWithEvaluationsResponse(
       session,
       evaluations.map(toEvaluationResponse),
+      setupEvaluations.map(toSetupEvaluationResponse),
     );
     return { message: result.message, detail: response };
   }
@@ -131,6 +144,20 @@ export class TrainingSessionController {
   @Post(':id/audio')
   @RequireSchoolContext()
   @RequireSchoolRole('COACH', 'HEADCOACH')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: Number(process.env.AUDIO_UPLOAD_MAX_BYTES ?? 10 * 1024 * 1024),
+      },
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype?.startsWith('audio/')) {
+          cb(new BadRequestException('Only audio files are allowed'), false);
+          return;
+        }
+        cb(null, true);
+      },
+    }),
+  )
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Send audio message to a participant' })
   @ApiResponse({
@@ -142,8 +169,18 @@ export class TrainingSessionController {
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() command: SendAudioMessageCommand,
     @CurrentUser() auth: AuthUser,
+    @UploadedFile() file?: {
+      originalname: string;
+      mimetype: string;
+      size: number;
+      buffer: Buffer;
+    },
   ): Promise<ApiResponseDto<TrainingSessionResponse>> {
     command.sessionId = id;
+    if (file) command.file = file;
+    if (!command.file && !command.audioUrl) {
+      throw new BadRequestException('Either file or audioUrl is required');
+    }
     return await this.sendAudioMessageUseCase.handle(command, auth);
   }
 
@@ -168,10 +205,47 @@ export class TrainingSessionController {
     );
     const session = result.detail as any;
     if (!session) return result as ApiResponseDto<TrainingSessionResponse>;
-    const evaluations = await this.evaluationRepository.findBySessionId(id);
+    const [evaluations, setupEvaluations] = await Promise.all([
+      this.evaluationRepository.findBySessionId(id),
+      this.setupEvaluationRepository.findBySessionId(id),
+    ]);
     const response = toSessionWithEvaluationsResponse(
       session,
       evaluations.map(toEvaluationResponse),
+      setupEvaluations.map(toSetupEvaluationResponse),
+    );
+    return { message: result.message, detail: response };
+  }
+
+  @Post(':id/setup-evaluations')
+  @RequireSchoolContext()
+  @RequireSchoolRole('COACH', 'HEADCOACH')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Submit or update setup evaluation for the session' })
+  @ApiResponse({
+    status: 200,
+    description: 'Setup evaluation saved successfully',
+    type: ApiResponseDto<TrainingSessionResponse>,
+  })
+  async submitSetupEvaluation(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() command: SubmitSetupEvaluationCommand,
+    @CurrentUser() auth: AuthUser,
+  ): Promise<ApiResponseDto<TrainingSessionResponse>> {
+    const result = await this.submitSetupEvaluationUseCase.handle(
+      { ...command, sessionId: id },
+      auth,
+    );
+    const session = result.detail as any;
+    if (!session) return result as ApiResponseDto<TrainingSessionResponse>;
+    const [evaluations, setupEvaluations] = await Promise.all([
+      this.evaluationRepository.findBySessionId(id),
+      this.setupEvaluationRepository.findBySessionId(id),
+    ]);
+    const response = toSessionWithEvaluationsResponse(
+      session,
+      evaluations.map(toEvaluationResponse),
+      setupEvaluations.map(toSetupEvaluationResponse),
     );
     return { message: result.message, detail: response };
   }

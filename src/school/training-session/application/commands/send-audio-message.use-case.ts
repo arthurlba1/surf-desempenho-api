@@ -9,7 +9,8 @@ import { ITrainingSessionRepositoryPort } from '@/school/training-session/domain
 import { TrainingSessionEntity } from '@/school/training-session/domain/entities/training-session.entity';
 import { TrainingSessionStatus, AudioMessage } from '@/school/training-session/schemas/training-session.schema';
 import { IMembershipRepositoryPort } from '@/school/domain/ports/membership.repository.port';
-import { MembershipRole, isCoachRole } from '@/school/schemas/membership.schema';
+import { MembershipRole } from '@/school/schemas/membership.schema';
+import { IStorageProviderPort } from '@/school/training-session/domain/ports/storage.provider.port';
 
 @Injectable()
 export class SendAudioMessageUseCase extends BaseUseCase<
@@ -19,6 +20,7 @@ export class SendAudioMessageUseCase extends BaseUseCase<
   constructor(
     private readonly trainingSessionRepository: ITrainingSessionRepositoryPort,
     private readonly membershipRepository: IMembershipRepositoryPort,
+    private readonly storageProvider: IStorageProviderPort,
   ) {
     super();
   }
@@ -63,10 +65,36 @@ export class SendAudioMessageUseCase extends BaseUseCase<
       throw new BadRequestException('Recipient must be a participant of the training session');
     }
 
+    if (!payload.file && !payload.audioUrl) {
+      throw new BadRequestException('Either file or audioUrl is required');
+    }
+
+    let audioUrl = payload.audioUrl;
+    if (payload.file) {
+      if (!payload.file.mimetype?.startsWith('audio/')) {
+        throw new BadRequestException('Invalid audio file type');
+      }
+      const maxSizeBytes = Number(process.env.AUDIO_UPLOAD_MAX_BYTES ?? 10 * 1024 * 1024);
+      if (payload.file.size > maxSizeBytes) {
+        throw new BadRequestException(`Audio exceeds max size of ${maxSizeBytes} bytes`);
+      }
+      const extension = getFileExtension(payload.file.originalname, payload.file.mimetype);
+      const objectKey = `training-sessions/${payload.sessionId}/audio/${randomUUID()}${extension}`;
+      const uploaded = await this.storageProvider.upload({
+        key: objectKey,
+        buffer: payload.file.buffer,
+        contentType: payload.file.mimetype,
+      });
+      audioUrl = uploaded.url;
+    }
+    if (!audioUrl) {
+      throw new BadRequestException('Audio URL could not be resolved');
+    }
+
     const audioMessage: AudioMessage = {
       id: randomUUID(),
       recipientId: payload.recipientId,
-      audioUrl: payload.audioUrl,
+      audioUrl,
       sentAt: new Date(),
       duration: payload.duration,
     };
@@ -77,4 +105,15 @@ export class SendAudioMessageUseCase extends BaseUseCase<
 
     return this.ok('Audio message sent successfully', updated!);
   }
+}
+
+function getFileExtension(originalName: string, mimeType?: string): string {
+  const byName = originalName?.match(/\.[a-zA-Z0-9]+$/)?.[0];
+  if (byName) return byName.toLowerCase();
+  if (mimeType === 'audio/mpeg') return '.mp3';
+  if (mimeType === 'audio/mp4') return '.m4a';
+  if (mimeType === 'audio/aac') return '.aac';
+  if (mimeType === 'audio/wav' || mimeType === 'audio/x-wav') return '.wav';
+  if (mimeType === 'audio/ogg') return '.ogg';
+  return '.bin';
 }

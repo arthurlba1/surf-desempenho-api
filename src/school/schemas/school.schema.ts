@@ -34,6 +34,9 @@ export class School {
   @Prop({ default: true, required: false })
   onHold?: boolean;
 
+  @Prop({ required: false })
+  logoUrl?: string;
+
   @Prop({ required: true, default: Date.now })
   createdAt: Date;
 
