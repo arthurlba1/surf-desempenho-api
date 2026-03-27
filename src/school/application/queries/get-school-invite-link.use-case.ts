@@ -32,10 +32,12 @@ export class GetSchoolInviteLinkUseCase extends BaseUseCase<
       throw new BadRequestException('currentActiveSchoolId is required for this operation');
     }
 
-    const school = await this.schoolRepository.findById(schoolId);
+    let school = await this.schoolRepository.findById(schoolId);
     if (!school) {
       throw new NotFoundException('School not found');
     }
+
+    school = (await this.schoolRepository.ensureTempJoinCodeIfMissing(schoolId)) ?? school;
 
     const token = school.inviteToken || '';
     if (!token) {
@@ -45,6 +47,9 @@ export class GetSchoolInviteLinkUseCase extends BaseUseCase<
     const scheme = this.configService.get<string>('INVITE_APP_SCHEME', 'surfdesempenhoapp');
     const url = `${scheme}://invite?token=${token}`;
 
-    return this.ok('Invite link fetched successfully', SchoolInviteLinkResponse.from(token, url));
+    return this.ok(
+      'Invite link fetched successfully',
+      SchoolInviteLinkResponse.from(token, url, school.tempJoinCode),
+    );
   }
 }

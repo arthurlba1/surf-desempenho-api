@@ -30,6 +30,10 @@ import { SubmitSetupEvaluationCommand } from '@/school/training-session/applicat
 import { SubmitSetupEvaluationUseCase } from '@/school/training-session/application/commands/submit-setup-evaluation.use-case';
 import { SendAudioMessageCommand } from '@/school/training-session/application/commands/send-audio-message.command';
 import { SendAudioMessageUseCase } from '@/school/training-session/application/commands/send-audio-message.use-case';
+import { SubmitSelfEvaluationCommand } from '@/school/training-session/application/commands/submit-self-evaluation.command';
+import { SubmitSelfEvaluationUseCase } from '@/school/training-session/application/commands/submit-self-evaluation.use-case';
+import { SubmitSelfSetupEvaluationCommand } from '@/school/training-session/application/commands/submit-self-setup-evaluation.command';
+import { SubmitSelfSetupEvaluationUseCase } from '@/school/training-session/application/commands/submit-self-setup-evaluation.use-case';
 import { GetTrainingSessionsQuery } from '@/school/training-session/application/queries/get-training-sessions.query';
 import { GetTrainingSessionsUseCase } from '@/school/training-session/application/queries/get-training-sessions.use-case';
 import { GetTrainingSessionUseCase } from '@/school/training-session/application/queries/get-training-session.use-case';
@@ -39,8 +43,18 @@ import {
   toSetupEvaluationResponse,
   toSessionWithEvaluationsResponse,
 } from '@/school/training-session/application/responses/training-session.response';
+import {
+  toSurferListItemDto,
+  toSurferDetailDto,
+} from '@/school/training-session/application/mappers/surfer-training-session.mapper';
+import {
+  SurferTrainingSessionListItemDto,
+  SurferTrainingSessionDetailDto,
+} from '@/school/training-session/application/dtos/surfer-training-session.dto';
 import { IAthleteEvaluationRepositoryPort } from '@/school/training-session/domain/ports/athlete-evaluation.repository.port';
 import { ISetupEvaluationRepositoryPort } from '@/school/training-session/domain/ports/setup-evaluation.repository.port';
+import { IMembershipRepositoryPort } from '@/school/domain/ports/membership.repository.port';
+import { MembershipRole } from '@/school/schemas/membership.schema';
 
 @ApiTags('Training Sessions')
 @Controller('school/training-sessions')
@@ -51,10 +65,13 @@ export class TrainingSessionController {
     private readonly sendAudioMessageUseCase: SendAudioMessageUseCase,
     private readonly submitAthleteEvaluationUseCase: SubmitAthleteEvaluationUseCase,
     private readonly submitSetupEvaluationUseCase: SubmitSetupEvaluationUseCase,
+    private readonly submitSelfEvaluationUseCase: SubmitSelfEvaluationUseCase,
+    private readonly submitSelfSetupEvaluationUseCase: SubmitSelfSetupEvaluationUseCase,
     private readonly getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
     private readonly getTrainingSessionUseCase: GetTrainingSessionUseCase,
     private readonly evaluationRepository: IAthleteEvaluationRepositoryPort,
     private readonly setupEvaluationRepository: ISetupEvaluationRepositoryPort,
+    private readonly membershipRepository: IMembershipRepositoryPort,
   ) {}
 
   @Post()
@@ -81,14 +98,37 @@ export class TrainingSessionController {
   @ApiResponse({
     status: 200,
     description: 'Training sessions retrieved successfully',
-    type: ApiResponseDto<[TrainingSessionResponse]>,
   })
   async list(
     @Query() query: GetTrainingSessionsQuery,
     @CurrentUser() auth: AuthUser,
-  ): Promise<ApiResponseDto<TrainingSessionResponse[]>> {
+  ): Promise<ApiResponseDto<TrainingSessionResponse[] | SurferTrainingSessionListItemDto[]>> {
     const result = await this.getTrainingSessionsUseCase.handle(query, auth);
-    const sessions = (result.detail || []) as TrainingSessionResponse[];
+    const sessions = (result.detail || []) as any[];
+
+    const userMembership = auth.currentActiveSchoolId
+      ? await this.membershipRepository.findByUserIdAndSchoolId(auth.id, auth.currentActiveSchoolId)
+      : null;
+
+    if (userMembership?.role === MembershipRole.SURFER) {
+      const surferItems = await Promise.all(
+        sessions.map(async (s) => {
+          const id = s.id ?? s._id?.toString();
+          const [evaluations, setupEvaluations] = await Promise.all([
+            this.evaluationRepository.findBySessionId(id),
+            this.setupEvaluationRepository.findBySessionId(id),
+          ]);
+          return toSurferListItemDto(
+            s,
+            auth.id,
+            evaluations.map(toEvaluationResponse),
+            setupEvaluations.map(toSetupEvaluationResponse),
+          );
+        }),
+      );
+      return { message: result.message, detail: surferItems };
+    }
+
     const withPending = sessions.map((s) =>
       toSessionWithEvaluationsResponse(s, s.evaluations ?? []),
     );
@@ -102,19 +142,33 @@ export class TrainingSessionController {
   @ApiResponse({
     status: 200,
     description: 'Training session retrieved successfully',
-    type: ApiResponseDto<TrainingSessionResponse>,
   })
   async getById(
     @Param('id', ParseObjectIdPipe) id: string,
     @CurrentUser() auth: AuthUser,
-  ): Promise<ApiResponseDto<TrainingSessionResponse>> {
+  ): Promise<ApiResponseDto<TrainingSessionResponse | SurferTrainingSessionDetailDto>> {
     const result = await this.getTrainingSessionUseCase.handle({ id }, auth);
     const session = result.detail as any;
     if (!session) return result as ApiResponseDto<TrainingSessionResponse>;
-    const [evaluations, setupEvaluations] = await Promise.all([
+
+    const [evaluations, setupEvaluations, userMembership] = await Promise.all([
       this.evaluationRepository.findBySessionId(id),
       this.setupEvaluationRepository.findBySessionId(id),
+      auth.currentActiveSchoolId
+        ? this.membershipRepository.findByUserIdAndSchoolId(auth.id, auth.currentActiveSchoolId)
+        : Promise.resolve(null),
     ]);
+
+    if (userMembership?.role === MembershipRole.SURFER) {
+      const detail = toSurferDetailDto(
+        session,
+        auth.id,
+        evaluations.map(toEvaluationResponse),
+        setupEvaluations.map(toSetupEvaluationResponse),
+      );
+      return { message: result.message, detail };
+    }
+
     const response = toSessionWithEvaluationsResponse(
       session,
       evaluations.map(toEvaluationResponse),
@@ -248,5 +302,72 @@ export class TrainingSessionController {
       setupEvaluations.map(toSetupEvaluationResponse),
     );
     return { message: result.message, detail: response };
+  }
+
+  @Post(':id/self-evaluation')
+  @RequireSchoolContext()
+  @RequireSchoolRole('SURFER')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Submit or update self evaluation for the session (surfer only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Self evaluation saved successfully',
+  })
+  async submitSelfEvaluation(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() command: SubmitSelfEvaluationCommand,
+    @CurrentUser() auth: AuthUser,
+  ): Promise<ApiResponseDto<SurferTrainingSessionDetailDto>> {
+    const result = await this.submitSelfEvaluationUseCase.handle(
+      { ...command, sessionId: id },
+      auth,
+    );
+    const session = result.detail as any;
+    if (!session) return result as any;
+    const [evaluations, setupEvaluations] = await Promise.all([
+      this.evaluationRepository.findBySessionId(id),
+      this.setupEvaluationRepository.findBySessionId(id),
+    ]);
+    const detail = toSurferDetailDto(
+      session,
+      auth.id,
+      evaluations.map(toEvaluationResponse),
+      setupEvaluations.map(toSetupEvaluationResponse),
+    );
+    return { message: result.message, detail };
+  }
+
+  @Post(':id/self-setup-evaluations')
+  @RequireSchoolContext()
+  @RequireSchoolRole('SURFER')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Submit or update self setup evaluation (surfer only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Self setup evaluation saved successfully',
+  })
+  async submitSelfSetupEvaluation(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() command: SubmitSelfSetupEvaluationCommand,
+    @CurrentUser() auth: AuthUser,
+  ): Promise<ApiResponseDto<SurferTrainingSessionDetailDto>> {
+    await this.submitSelfSetupEvaluationUseCase.handle(
+      { ...command, sessionId: id },
+      auth,
+    );
+    const result = await this.getTrainingSessionUseCase.handle({ id }, auth);
+    const session = result.detail as any;
+    if (!session) return result as any;
+    const [evaluations, setupEvaluations] = await Promise.all([
+      this.evaluationRepository.findBySessionId(id),
+      this.setupEvaluationRepository.findBySessionId(id),
+    ]);
+    const detail = toSurferDetailDto(
+      session,
+      auth.id,
+      evaluations.map(toEvaluationResponse),
+      setupEvaluations.map(toSetupEvaluationResponse),
+    );
+    return { message: result.message, detail };
   }
 }

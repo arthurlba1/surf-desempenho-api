@@ -13,6 +13,7 @@ export class SetupEvaluationResponse {
   schoolId: string;
   athleteId: string;
   setupId: string;
+  source?: string;
   cruisingSpeed?: string;
   attackSpeed?: string;
   submergedSpeed?: string;
@@ -116,6 +117,7 @@ export function toSetupEvaluationResponse(e: SetupEvaluationEntity): SetupEvalua
     schoolId: e.schoolId,
     athleteId: e.athleteId,
     setupId: e.setupId,
+    source: e.source,
     cruisingSpeed: e.cruisingSpeed,
     attackSpeed: e.attackSpeed,
     submergedSpeed: e.submergedSpeed,

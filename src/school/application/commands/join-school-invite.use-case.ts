@@ -22,9 +22,14 @@ export class JoinSchoolInviteUseCase extends BaseUseCase<JoinSchoolInviteCommand
   }
 
   async handle(payload: JoinSchoolInviteCommand, auth: AuthUser): Promise<IUseCaseResponse<MembershipEntity>> {
-    const school = await this.schoolRepository.findByInviteToken(payload.token);
+    const trimmed = payload.token?.trim() ?? '';
+    let school = await this.schoolRepository.findByInviteToken(trimmed);
     if (!school) {
-      throw new NotFoundException('Invalid invite token');
+      // TEMPORARY: also accept short school code (same join semantics as invite token).
+      school = await this.schoolRepository.findByTempJoinCode(trimmed);
+    }
+    if (!school) {
+      throw new NotFoundException('Invalid invite token or school code');
     }
 
     const user = await this.userRepository.findById(auth.id);

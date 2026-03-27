@@ -6,6 +6,7 @@ import {
   SeaConditions,
   WaveConditions,
   AudioMessage,
+  SelfEvaluation,
 } from '@/school/training-session/schemas/training-session.schema';
 
 export class TrainingSessionEntity {
@@ -27,6 +28,7 @@ export class TrainingSessionEntity {
     public evaluatedParticipantsCount: number = 0,
     public readonly createdAt?: Date,
     public readonly updatedAt?: Date,
+    public selfEvaluations: SelfEvaluation[] = [],
   ) {}
 
   static create(data: {
@@ -47,6 +49,7 @@ export class TrainingSessionEntity {
     evaluatedParticipantsCount?: number;
     createdAt?: Date;
     updatedAt?: Date;
+    selfEvaluations?: SelfEvaluation[];
   }): TrainingSessionEntity {
     const sync: Sync = data.sync || {
       status: SyncStatus.PENDING,
@@ -72,6 +75,7 @@ export class TrainingSessionEntity {
       data.evaluatedParticipantsCount ?? 0,
       data.createdAt || new Date(),
       data.updatedAt || new Date(),
+      data.selfEvaluations || [],
     );
   }
 
@@ -98,6 +102,7 @@ export class TrainingSessionEntity {
       document.evaluatedParticipantsCount ?? 0,
       document.createdAt,
       document.updatedAt,
+      document.selfEvaluations || [],
     );
   }
 
@@ -116,6 +121,7 @@ export class TrainingSessionEntity {
       seaConditions: this.seaConditions,
       waveConditions: this.waveConditions,
       audioMessages: this.audioMessages,
+      selfEvaluations: this.selfEvaluations,
       sync: this.sync,
       evaluatedParticipantsCount: this.evaluatedParticipantsCount,
       createdAt: this.createdAt,

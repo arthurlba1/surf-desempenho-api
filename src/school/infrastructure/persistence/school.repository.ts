@@ -1,6 +1,7 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { randomBytes } from 'crypto';
 
 import { School, SchoolDocument } from '@/school/schemas/school.schema';
 import { SchoolEntity } from '@/school/domain/entities/school.entity';
@@ -31,6 +32,29 @@ export class SchoolRepository implements ISchoolRepositoryPort {
     const school = await this.schoolModel.findOne({ inviteToken }).exec();
     if (!school) return null;
     return SchoolEntity.fromDocument(school);
+  }
+
+  async findByTempJoinCode(code: string): Promise<SchoolEntity | null> {
+    const normalized = code.trim().toUpperCase();
+    if (!normalized) return null;
+    const school = await this.schoolModel.findOne({ tempJoinCode: normalized }).exec();
+    if (!school) return null;
+    return SchoolEntity.fromDocument(school);
+  }
+
+  async ensureTempJoinCodeIfMissing(schoolId: string): Promise<SchoolEntity | null> {
+    const current = await this.findById(schoolId);
+    if (!current) return null;
+    if (current.tempJoinCode) return current;
+
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const code = randomBytes(3).toString('hex').toUpperCase();
+      const taken = await this.schoolModel.findOne({ tempJoinCode: code }).exec();
+      if (taken) continue;
+      await this.schoolModel.findByIdAndUpdate(schoolId, { $set: { tempJoinCode: code } }).exec();
+      return this.findById(schoolId);
+    }
+    return current;
   }
 
   async findManyByIds(ids: string[]): Promise<SchoolEntity[]> {

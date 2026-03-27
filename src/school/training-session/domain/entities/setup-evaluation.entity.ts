@@ -1,3 +1,5 @@
+export type SetupEvaluationSource = 'coach' | 'self';
+
 export class SetupEvaluationEntity {
   constructor(
     public readonly id: string,
@@ -15,6 +17,7 @@ export class SetupEvaluationEntity {
     public nps?: number,
     public readonly createdAt?: Date,
     public readonly updatedAt?: Date,
+    public source?: SetupEvaluationSource,
   ) {}
 
   static fromDocument(document: any): SetupEvaluationEntity {
@@ -34,6 +37,7 @@ export class SetupEvaluationEntity {
       document.nps,
       document.createdAt,
       document.updatedAt,
+      document.source ?? 'coach',
     );
   }
 }

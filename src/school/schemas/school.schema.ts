@@ -28,6 +28,13 @@ export class School {
   })
   inviteToken?: string;
 
+  /**
+   * TEMPORARY: short human-readable code for join-by-code flow (same as invite, resolves to school).
+   * Remove when the real invite/product flow ships.
+   */
+  @Prop({ required: false, unique: true, sparse: true, index: true })
+  tempJoinCode?: string;
+
   @Prop({ type: SyncSchema, required: false })
   sync?: Sync;
 

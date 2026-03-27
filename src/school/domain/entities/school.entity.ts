@@ -6,6 +6,7 @@ export class SchoolEntity {
     public readonly name: string,
     public readonly ownerId: string,
     public readonly inviteToken?: string,
+    public readonly tempJoinCode?: string,
     public sync?: Sync,
     public readonly createdAt?: Date,
     public readonly updatedAt?: Date,
@@ -16,6 +17,7 @@ export class SchoolEntity {
     name: string;
     ownerId: string;
     inviteToken?: string;
+    tempJoinCode?: string;
     sync?: Sync;
     createdAt?: Date;
     updatedAt?: Date;
@@ -31,6 +33,7 @@ export class SchoolEntity {
       data.name,
       data.ownerId,
       data.inviteToken || this.generateInviteToken(),
+      data.tempJoinCode ?? this.generateTempJoinCode(),
       sync,
       data.createdAt || new Date(),
       data.updatedAt || new Date(),
@@ -43,6 +46,7 @@ export class SchoolEntity {
       document.name,
       document.ownerId || document.owner,
       document.inviteToken,
+      document.tempJoinCode,
       document.sync || {
         status: SyncStatus.PENDING,
         version: 1,
@@ -59,6 +63,7 @@ export class SchoolEntity {
       name: this.name,
       ownerId: this.ownerId,
       inviteToken: this.inviteToken,
+      tempJoinCode: this.tempJoinCode,
       sync: this.sync,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
@@ -98,5 +103,11 @@ export class SchoolEntity {
   private static generateInviteToken(): string {
     const { randomBytes } = require('crypto');
     return randomBytes(16).toString('hex');
+  }
+
+  /** TEMPORARY: 6-char code for join-by-code UI; remove with temp flow. */
+  private static generateTempJoinCode(): string {
+    const { randomBytes } = require('crypto');
+    return randomBytes(3).toString('hex').toUpperCase();
   }
 }

@@ -61,6 +61,31 @@ export class AudioMessage {
   @Prop() duration?: number;
 }
 
+export enum SelfEvaluationLevel {
+  MUITO_ALTO = 'muito alto',
+  ALTO = 'alto',
+  BAIXO = 'baixo',
+  MUITO_BAIXO = 'muito baixo',
+}
+
+@Schema({ _id: false })
+export class SelfEvaluation {
+  @Prop({ required: true })
+  athleteId: string;
+
+  @Prop({ enum: Object.values(SelfEvaluationLevel) })
+  physicalEffortIntensity?: string;
+
+  @Prop({ enum: Object.values(SelfEvaluationLevel) })
+  positiveAffect?: string;
+
+  @Prop({ enum: Object.values(SelfEvaluationLevel) })
+  negativeAffect?: string;
+
+  @Prop({ required: true, default: Date.now })
+  submittedAt: Date;
+}
+
 @Schema({ timestamps: true, _id: true })
 export class TrainingSession {
   @Prop({ required: true, index: true })
@@ -97,6 +122,9 @@ export class TrainingSession {
 
   @Prop({ type: [AudioMessage], default: [] })
   audioMessages?: AudioMessage[];
+
+  @Prop({ type: [SelfEvaluation], default: [] })
+  selfEvaluations?: SelfEvaluation[];
 
   @Prop({ type: SyncSchema, required: false })
   sync?: Sync;

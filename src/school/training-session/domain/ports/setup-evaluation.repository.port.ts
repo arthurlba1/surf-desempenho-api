@@ -1,10 +1,11 @@
-import { SetupEvaluationEntity } from '@/school/training-session/domain/entities/setup-evaluation.entity';
+import { SetupEvaluationEntity, type SetupEvaluationSource } from '@/school/training-session/domain/entities/setup-evaluation.entity';
 
 export interface UpsertSetupEvaluationData {
   trainingSessionId: string;
   schoolId: string;
   athleteId: string;
   setupId: string;
+  source?: SetupEvaluationSource;
   cruisingSpeed?: string;
   attackSpeed?: string;
   submergedSpeed?: string;

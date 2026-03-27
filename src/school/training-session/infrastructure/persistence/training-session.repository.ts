@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import {
   TrainingSession,
   TrainingSessionDocument,
+  type SelfEvaluation,
 } from '@/school/training-session/schemas/training-session.schema';
 import { TrainingSessionEntity } from '@/school/training-session/domain/entities/training-session.entity';
 import { ITrainingSessionRepositoryPort } from '@/school/training-session/domain/ports/training-session.repository.port';
@@ -85,6 +86,32 @@ export class TrainingSessionRepository implements ITrainingSessionRepositoryPort
     await this.trainingSessionModel
       .findByIdAndUpdate(sessionId, { $inc: { evaluatedParticipantsCount: 1 } })
       .exec();
+  }
+
+  async upsertSelfEvaluation(
+    sessionId: string,
+    evaluation: SelfEvaluation,
+  ): Promise<TrainingSessionEntity | null> {
+    await this.trainingSessionModel
+      .updateOne(
+        { _id: sessionId, 'selfEvaluations.athleteId': evaluation.athleteId },
+        { $set: { 'selfEvaluations.$': evaluation } },
+      )
+      .exec();
+
+    const existing = await this.trainingSessionModel
+      .findOne({ _id: sessionId, 'selfEvaluations.athleteId': evaluation.athleteId })
+      .exec();
+
+    if (!existing) {
+      await this.trainingSessionModel
+        .updateOne({ _id: sessionId }, { $push: { selfEvaluations: evaluation } })
+        .exec();
+    }
+
+    const updated = await this.trainingSessionModel.findById(sessionId).exec();
+    if (!updated) return null;
+    return TrainingSessionEntity.fromDocument(updated);
   }
 
   async remove(id: string): Promise<void> {

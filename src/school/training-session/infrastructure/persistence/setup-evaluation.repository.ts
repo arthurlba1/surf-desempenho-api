@@ -20,13 +20,14 @@ export class SetupEvaluationRepository implements ISetupEvaluationRepositoryPort
   ) {}
 
   async upsert(data: UpsertSetupEvaluationData): Promise<{ evaluation: SetupEvaluationEntity; isNew: boolean }> {
-    const existing = await this.evaluationModel
-      .findOne({ trainingSessionId: data.trainingSessionId, setupId: data.setupId })
-      .exec();
+    const source = data.source ?? 'coach';
+    const filter = { trainingSessionId: data.trainingSessionId, setupId: data.setupId, source };
+    const existing = await this.evaluationModel.findOne(filter).exec();
 
     const updatePayload = {
       schoolId: data.schoolId,
       athleteId: data.athleteId,
+      source,
       cruisingSpeed: data.cruisingSpeed,
       attackSpeed: data.attackSpeed,
       submergedSpeed: data.submergedSpeed,
@@ -39,7 +40,7 @@ export class SetupEvaluationRepository implements ISetupEvaluationRepositoryPort
 
     const updated = await this.evaluationModel
       .findOneAndUpdate(
-        { trainingSessionId: data.trainingSessionId, setupId: data.setupId },
+        filter,
         { $set: updatePayload },
         { upsert: true, new: true },
       )
