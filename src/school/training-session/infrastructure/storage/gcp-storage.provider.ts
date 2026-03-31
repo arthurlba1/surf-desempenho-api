@@ -16,7 +16,6 @@ export class GcpStorageProvider implements IStorageProviderPort {
   constructor(private readonly configService: ConfigService) {
     this.storage = new Storage();
     this.bucketName =
-      this.configService.get<string>('GCP_AUDIO_BUCKET_NAME') ??
       this.configService.get<string>('GCP_STORAGE_BUCKET_NAME') ??
       '';
   }
@@ -24,7 +23,7 @@ export class GcpStorageProvider implements IStorageProviderPort {
   async upload(input: StorageUploadInput): Promise<StorageUploadResult> {
     if (!this.bucketName) {
       throw new InternalServerErrorException(
-        'Storage bucket is not configured. Set GCP_AUDIO_BUCKET_NAME or GCP_STORAGE_BUCKET_NAME',
+        'Storage bucket is not configured. Set GCP_STORAGE_BUCKET_NAME',
       );
     }
 
