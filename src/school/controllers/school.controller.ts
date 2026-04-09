@@ -20,6 +20,8 @@ import { JoinSchoolInviteUseCase } from '@/school/application/commands/join-scho
 import { JoinSchoolInviteCommand } from '@/school/application/commands/join-school-invite.command';
 import { MembershipEntity } from '@/school/domain/entities/membership.entity';
 import { GetSchoolInviteLinkUseCase } from '@/school/application/queries/get-school-invite-link.use-case';
+import { AcceptSchoolAthleteUseCase } from '@/school/application/commands/accept-school-athlete.use-case';
+import { AcceptSchoolAthleteCommand } from '@/school/application/commands/accept-school-athlete.command';
 
 @Controller('school')
 export class SchoolController {
@@ -30,6 +32,7 @@ export class SchoolController {
     private readonly getSchoolAthletesUseCase: GetSchoolAthletesUseCase,
     private readonly joinSchoolInviteUseCase: JoinSchoolInviteUseCase,
     private readonly getSchoolInviteLinkUseCase: GetSchoolInviteLinkUseCase,
+    private readonly acceptSchoolAthleteUseCase: AcceptSchoolAthleteUseCase,
   ) {}
 
   @Post()
@@ -65,6 +68,15 @@ export class SchoolController {
     @CurrentUser() auth: AuthUser,
   ): Promise<ApiResponseDto<MembershipEntity>> {
    return await this.joinSchoolInviteUseCase.handle({ token } as JoinSchoolInviteCommand, auth);
+  }
+
+  @Post('athletes/:userId/accept')
+  @RequireSchoolRole('COACH', 'HEADCOACH')
+  async acceptAthlete(
+    @Param('userId') userId: string,
+    @CurrentUser() auth: AuthUser,
+  ): Promise<ApiResponseDto<MembershipEntity>> {
+    return await this.acceptSchoolAthleteUseCase.handle({ userId } as AcceptSchoolAthleteCommand, auth);
   }
 
   @Get(':id')

@@ -19,6 +19,7 @@ import { GetSchoolAthletesUseCase } from '@/school/application/queries/get-schoo
 import { JoinSchoolInviteUseCase } from '@/school/application/commands/join-school-invite.use-case';
 import { GetSchoolInviteLinkUseCase } from '@/school/application/queries/get-school-invite-link.use-case';
 import { TrainingSessionModule } from '@/school/training-session/training-session.module';
+import { AcceptSchoolAthleteUseCase } from '@/school/application/commands/accept-school-athlete.use-case';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { TrainingSessionModule } from '@/school/training-session/training-sessio
     GetSchoolAthletesUseCase,
     JoinSchoolInviteUseCase,
     GetSchoolInviteLinkUseCase,
+    AcceptSchoolAthleteUseCase,
     CreateMembershipUseCase,
     MembershipSchoolMapperService,
   ],
@@ -59,6 +61,7 @@ import { TrainingSessionModule } from '@/school/training-session/training-sessio
     GetSchoolAthletesUseCase,
     JoinSchoolInviteUseCase,
     GetSchoolInviteLinkUseCase,
+    AcceptSchoolAthleteUseCase,
     CreateMembershipUseCase,
     MembershipSchoolMapperService,
   ],

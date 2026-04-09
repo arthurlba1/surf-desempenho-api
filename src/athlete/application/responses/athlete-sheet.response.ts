@@ -96,5 +96,6 @@ export class AthleteSheetResponse {
       fins: FinResponse[];
       setups: BoardSetupResponse[];
     },
+    public readonly membershipStatus?: 'ACTIVE' | 'PENDING' | 'BLOCKED',
   ) {}
 }

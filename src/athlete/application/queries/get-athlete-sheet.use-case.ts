@@ -62,6 +62,7 @@ export class GetAthleteSheetUseCase extends BaseUseCase<GetAthleteSheetQuery, At
   async handle(payload: GetAthleteSheetQuery, auth?: AuthUser): Promise<IUseCaseResponse<AthleteSheetResponse>> {
     if (!auth) throw new UnauthorizedException('User not authenticated');
     const isSelf = auth.id === payload.userId;
+    let membershipStatus: MembershipStatus | undefined;
 
     if (!isSelf) {
       // Third-party access: requester must be coach/headcoach and both must be members of the requester's current school
@@ -83,6 +84,7 @@ export class GetAthleteSheetUseCase extends BaseUseCase<GetAthleteSheetQuery, At
         throw new ForbiddenException('Athlete is not a surfer member of your current school');
       }
       // Note: athlete membership status is not constrained (PENDING/BLOCKED are still "members").
+      membershipStatus = athleteMembership.status;
     }
 
     const [user, profile] = await Promise.all([
@@ -104,84 +106,88 @@ export class GetAthleteSheetUseCase extends BaseUseCase<GetAthleteSheetQuery, At
         ])
       : [[], []];
 
-    return this.ok('Athlete sheet retrieved successfully', new AthleteSheetResponse(
-      mapProfile(profile, user),
-      competitiveRecords.map((r: any) => ({
-        id: asId(r),
-        athleteId: r.athleteId,
-        name: r.name,
-        date: r.date,
-        country: r.country,
-        city: r.city,
-        beach: r.beach,
-        peakName: r.peakName,
-        responsibleAssociation: r.responsibleAssociation,
-        placement: r.placement,
-        prize: r.prize,
-        equipments: r.equipments,
-      })),
-      trips.map((t: any) => ({
-        id: asId(t),
-        athleteId: t.athleteId,
-        name: t.name,
-        startDate: t.startDate,
-        endDate: t.endDate,
-        location: t.location,
-        quiver: t.quiver,
-        technicalPerformance: t.technicalPerformance,
-        physicalPerformance: t.physicalPerformance,
-        performance: t.performance,
-        planning: t.planning,
-        accumulatedSkills: t.accumulatedSkills,
-        accompaniedByCoach: t.accompaniedByCoach,
-      })),
-      {
-        surfboards: mapEquipment(surfboards, (s: any) => ({
-          id: asId(s),
-          ownerId: s.ownerId,
-          name: s.name,
-          model: s.model,
-          size: s.size,
-          width: s.width,
-          fractionalInches: s.fractionalInches,
-          thickness: s.thickness,
-          volume: s.volume,
-          tail: s.tail,
+    return this.ok(
+      'Athlete sheet retrieved successfully',
+      new AthleteSheetResponse(
+        mapProfile(profile, user),
+        competitiveRecords.map((r: any) => ({
+          id: asId(r),
+          athleteId: r.athleteId,
+          name: r.name,
+          date: r.date,
+          country: r.country,
+          city: r.city,
+          beach: r.beach,
+          peakName: r.peakName,
+          responsibleAssociation: r.responsibleAssociation,
+          placement: r.placement,
+          prize: r.prize,
+          equipments: r.equipments,
         })),
-        fins: mapEquipment(fins, (f: any) => ({
-          id: asId(f),
-          ownerId: f.ownerId,
-          name: f.name,
-          model: f.model,
-          set: f.set,
-          size: f.size,
-          area: f.area,
-          rake: f.rake,
-          base: f.base,
-          height: f.height,
-          foil: f.foil,
-          material: f.material,
-          system: f.system,
+        trips.map((t: any) => ({
+          id: asId(t),
+          athleteId: t.athleteId,
+          name: t.name,
+          startDate: t.startDate,
+          endDate: t.endDate,
+          location: t.location,
+          quiver: t.quiver,
+          technicalPerformance: t.technicalPerformance,
+          physicalPerformance: t.physicalPerformance,
+          performance: t.performance,
+          planning: t.planning,
+          accumulatedSkills: t.accumulatedSkills,
+          accompaniedByCoach: t.accompaniedByCoach,
         })),
-        setups: mapEquipment(setups, (b: any) => {
-          const surfboard = b.surfboardId
-            ? surfboards.find((sb: any) => asId(sb) === b.surfboardId)
-            : null;
-          const finId = b.finIds ? (b.finIds.split(',')[0]?.trim() || null) : null; // MVP: use first fin if multiple
-          const fin = finId ? fins.find((f: any) => asId(f) === finId) : null;
-          
-          return {
-            id: asId(b),
-            ownerId: b.ownerId,
-            name: b.name,
-            surfboardId: b.surfboardId,
-            finIds: b.finIds,
-            notes: b.notes,
-            surfboardName: surfboard?.name,
-            finName: fin?.name,
-          };
-        }),
-      },
-    ));
+        {
+          surfboards: mapEquipment(surfboards, (s: any) => ({
+            id: asId(s),
+            ownerId: s.ownerId,
+            name: s.name,
+            model: s.model,
+            size: s.size,
+            width: s.width,
+            fractionalInches: s.fractionalInches,
+            thickness: s.thickness,
+            volume: s.volume,
+            tail: s.tail,
+          })),
+          fins: mapEquipment(fins, (f: any) => ({
+            id: asId(f),
+            ownerId: f.ownerId,
+            name: f.name,
+            model: f.model,
+            set: f.set,
+            size: f.size,
+            area: f.area,
+            rake: f.rake,
+            base: f.base,
+            height: f.height,
+            foil: f.foil,
+            material: f.material,
+            system: f.system,
+          })),
+          setups: mapEquipment(setups, (b: any) => {
+            const surfboard = b.surfboardId
+              ? surfboards.find((sb: any) => asId(sb) === b.surfboardId)
+              : null;
+            const finId = b.finIds ? (b.finIds.split(',')[0]?.trim() || null) : null; // MVP: use first fin if multiple
+            const fin = finId ? fins.find((f: any) => asId(f) === finId) : null;
+
+            return {
+              id: asId(b),
+              ownerId: b.ownerId,
+              name: b.name,
+              surfboardId: b.surfboardId,
+              finIds: b.finIds,
+              notes: b.notes,
+              surfboardName: surfboard?.name,
+              finName: fin?.name,
+            };
+          }),
+        },
+        membershipStatus,
+      ),
+    );
   }
 }
